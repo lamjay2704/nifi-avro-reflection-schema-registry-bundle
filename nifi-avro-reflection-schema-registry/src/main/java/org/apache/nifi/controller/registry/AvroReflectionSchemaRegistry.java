@@ -1,7 +1,10 @@
 package org.apache.nifi.controller.registry;
 
+import org.apache.avro.Schema;
+import org.apache.avro.reflect.ReflectData;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -14,9 +17,14 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Tags({"schema", "registry", "avro", "reflection"})
 public class AvroReflectionSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
@@ -57,15 +65,38 @@ public class AvroReflectionSchemaRegistry extends AbstractControllerService impl
     }
 
     public RecordSchema retrieveSchema(SchemaIdentifier schemaIdentifier) {
-        return null;
+        Optional<String> name = schemaIdentifier.getName();
+        if (name.isPresent() && schemas.containsKey(name.get())) {
+            return schemas.get(name.get());
+        } else if (name.isPresent() && !schemas.containsKey(name.get())) {
+            throw new ProcessException(String.format("Could not find a schema named %s", name.get()));
+        } else {
+            throw new ProcessException("Unsupported schema identifier method used.");
+        }
     }
 
     public Set<SchemaField> getSuppliedSchemaFields() {
         return FIELDS;
     }
 
+    public Map<String, RecordSchema> schemas;
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
+        Map<String, RecordSchema> temp = new HashMap<>();
+        List<PropertyDescriptor> dynamic = context.getProperties().keySet()
+                .stream().filter(descriptor -> descriptor.isDynamic())
+                .collect(Collectors.toList());
+        for (PropertyDescriptor descriptor : dynamic) {
+            try {
+                Class clz = Class.forName(descriptor.getName());
+                Schema schema = ReflectData.get().getSchema(clz);
+                temp.put(clz.getSimpleName(), AvroTypeUtil.createSchema(schema));
+            } catch (Exception ex) {
+                throw new ProcessException(String.format("Exception caught while processing %s", descriptor.getName()), ex);
+            }
+        }
 
+        schemas = new ConcurrentHashMap<>(temp);
     }
 }
