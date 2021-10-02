@@ -16,6 +16,7 @@
     </properties>
 
     <modules>
+        <module>simple-data-model</module>
         <module>nifi-avro-reflection-schema-registry</module>
         <module>nifi-avro-reflection-schema-registry-nar</module>
     </modules>
