@@ -1,10 +1,39 @@
 package org.apache.nifi.controller.registry
 
+import org.apache.avro.generic.GenericDatumReader
+import org.apache.avro.generic.GenericRecordBuilder
+import org.apache.avro.io.DecoderFactory
+import org.apache.avro.io.EncoderFactory
+import org.apache.avro.reflect.ReflectData
+import org.apache.avro.reflect.ReflectDatumWriter
 import org.junit.jupiter.api.Test
+import org.schema.base.Text
+import org.schema.base.Thing
 
 class SerializationTest {
     @Test
     void test() {
+        def schema = ReflectData.get().getSchema(Thing.class)
+        assert schema
+        def testObject = Thing.builder()
+            .alternateName("test name")
+            .description("blah blah blah")
+            .disambiguatingDescription(Text.builder().text("inner text object").build())
+            .build()
+        def writer = new ReflectDatumWriter(Thing.class)
+        def out = new ByteArrayOutputStream()
+        def encoder = EncoderFactory.get().binaryEncoder(out, null)
+        writer.write(testObject, encoder)
+        encoder.flush()
+        out.close()
 
+        def genericReader = new GenericDatumReader(schema)
+        def genericInput = out.toByteArray()
+        def genericDecoder = DecoderFactory.get().binaryDecoder(genericInput, null)
+        def genericRecord = genericReader.read(null, genericDecoder)
+        assert genericRecord
+        assert genericRecord.getAt("alternateName").toString() == "test name"
+        assert genericRecord.getAt("description").toString() == "blah blah blah"
+        assert genericRecord.getAt("disambiguatingDescription")?.getAt("text")?.toString() == "inner text object"
     }
 }
