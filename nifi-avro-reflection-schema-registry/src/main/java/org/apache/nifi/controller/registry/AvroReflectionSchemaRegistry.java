@@ -6,6 +6,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -46,16 +47,23 @@ public class AvroReflectionSchemaRegistry extends AbstractControllerService impl
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        try {
-            Class.forName(propertyDescriptorName);
-        } catch (Exception ex) {
-            throw new ProcessException(String.format("Could not add property because %s is not on the classpath.", propertyDescriptorName),
-                    ex);
-        }
-
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .displayName(propertyDescriptorName)
+                .addValidator((subject, input, validationContext) -> {
+                    ValidationResult.Builder result = new ValidationResult.Builder()
+                            .input(input)
+                            .subject(subject);
+
+                    try {
+                        Class.forName(propertyDescriptorName);
+                        result.valid(true);
+                    } catch (Exception ex) {
+                        result.valid(false).explanation(String.format("Could not add property because %s is not on the classpath.", propertyDescriptorName));
+                    }
+
+                    return result.build();
+                })
                 .build();
     }
 
@@ -91,7 +99,7 @@ public class AvroReflectionSchemaRegistry extends AbstractControllerService impl
             try {
                 Class clz = Class.forName(descriptor.getName());
                 Schema schema = ReflectData.get().getSchema(clz);
-                temp.put(clz.getSimpleName(), AvroTypeUtil.createSchema(schema));
+                temp.put(context.getProperty(descriptor).getValue(), AvroTypeUtil.createSchema(schema));
             } catch (Exception ex) {
                 throw new ProcessException(String.format("Exception caught while processing %s", descriptor.getName()), ex);
             }
