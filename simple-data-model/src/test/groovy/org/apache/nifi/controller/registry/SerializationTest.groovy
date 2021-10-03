@@ -15,11 +15,7 @@ class SerializationTest {
     void test() {
         def schema = ReflectData.get().getSchema(Thing.class)
         assert schema
-        def testObject = Thing.builder()
-            .alternateName("test name")
-            .description("blah blah blah")
-            .disambiguatingDescription(Text.builder().text("inner text object").build())
-            .build()
+        def testObject = new Thing("test name", "blah blah blah", Text.builder().text("inner text object").build())
         def writer = new ReflectDatumWriter(Thing.class)
         def out = new ByteArrayOutputStream()
         def encoder = EncoderFactory.get().binaryEncoder(out, null)

@@ -1,6 +1,5 @@
 package org.schema.base;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -9,12 +8,16 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
 public class Thing {
     private String alternateName;
     private String description;
     private Text disambiguatingDescription;
+
+    public Thing(String alternateName, String description, Text disambiguatingDescription) {
+        this.alternateName = alternateName;
+        this.description = description;
+        this.disambiguatingDescription = disambiguatingDescription;
+    }
 }

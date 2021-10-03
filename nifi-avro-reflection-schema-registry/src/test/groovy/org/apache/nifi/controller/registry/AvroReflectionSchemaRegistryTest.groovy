@@ -39,6 +39,6 @@ class AvroReflectionSchemaRegistryTest {
         def identifier = new StandardSchemaIdentifier.Builder().name("Thing").build()
         RecordSchema thing = registry.retrieveSchema(identifier)
         assert thing
-        assert thing.getFields()?.size() == 3
+        assert thing.getFields()?.size() == 6
     }
 }
