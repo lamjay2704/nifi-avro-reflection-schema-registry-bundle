@@ -9,7 +9,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <nifi.version>1.14.0</nifi.version>
+        <nifi.version>1.16.0</nifi.version>
         <avro.version>1.10.2</avro.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
